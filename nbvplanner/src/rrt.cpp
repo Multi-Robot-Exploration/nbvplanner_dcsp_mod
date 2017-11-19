@@ -211,7 +211,7 @@ void nbvInspection::RrtTree::setStateFromOdometryMsg(const nav_msgs::Odometry &p
 
     tf::Quaternion quat = poseTF.getRotation();
     quat = transform * quat;
-    
+
     root_[0] = position.x();
     root_[1] = position.y();
     root_[2] = position.z();
@@ -278,8 +278,7 @@ void nbvInspection::RrtTree::setStateFromOdometryMsg(const nav_msgs::Odometry &p
     }
 }
 
-void nbvInspection::RrtTree::setPeerStateFromPoseMsg(
-    const geometry_msgs::PoseWithCovarianceStamped &pose, int n_peer)
+void nbvInspection::RrtTree::setPeerStateFromPoseMsg(const geometry_msgs::PoseWithCovarianceStamped &pose, int n_peer)
 {
     // Get latest transform to the planning frame and transform the pose
     static tf::TransformListener listener;
@@ -320,8 +319,12 @@ void nbvInspection::RrtTree::iterate(int iterations)
     // by the corresponding parameter. This method is to not bias the tree towards the
     // center of the exploration space.
     double radius = sqrt(
-        SQ(params_.minX_ - params_.maxX_) + SQ(params_.minY_ - params_.maxY_) + SQ(params_.minZ_ - params_.maxZ_));
+        SQ(params_.minX_ - params_.maxX_) +
+        SQ(params_.minY_ - params_.maxY_) +
+        SQ(params_.minZ_ - params_.maxZ_));
+
     bool solutionFound = false;
+
     while (!solutionFound)
     {
         for (int i = 0; i < 3; i++)
@@ -330,6 +333,7 @@ void nbvInspection::RrtTree::iterate(int iterations)
         }
         if (SQ(newState[0]) + SQ(newState[1]) + SQ(newState[2]) > pow(radius, 2.0))
             continue;
+
         // Offset new state by root
         newState += rootNode_->state_;
         if (!params_.softBounds_)
@@ -384,9 +388,10 @@ void nbvInspection::RrtTree::iterate(int iterations)
     newState[0] = origin[0] + direction[0];
     newState[1] = origin[1] + direction[1];
     newState[2] = origin[2] + direction[2];
-    if (volumetric_mapping::OctomapManager::CellStatus::kFree == manager_->getLineStatusBoundingBox(
-                                                                     origin, direction + origin + direction.normalized() * params_.dOvershoot_,
-                                                                     params_.boundingBox_) &&
+    if (volumetric_mapping::OctomapManager::CellStatus::kFree ==
+            manager_->getLineStatusBoundingBox(origin,
+                                               direction + origin + direction.normalized() * params_.dOvershoot_,
+                                               params_.boundingBox_) &&
         !multiagent::isInCollision(newParent->state_, newState, params_.boundingBox_, segments_))
     {
         // Sample the new orientation
@@ -788,9 +793,11 @@ void nbvInspection::RrtTree::publishNode(Node<StateVec> *node)
     }
 }
 
-std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::samplePath(StateVec start, StateVec end,
-                                                                    std::string targetFrame)
+std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::samplePath(StateVec start, StateVec end, std::string targetFrame)
 {
+
+    ROS_INFO("samplePath called: start: %2f, %2f, %2f, %2f end: %2f, %2f, %2f, %2f", start[0],start[1],start[2],start[3],end[0],end[1],end[2],end[3]);
+
     std::vector<geometry_msgs::Pose> ret;
     static tf::TransformListener listener;
     tf::StampedTransform transform;

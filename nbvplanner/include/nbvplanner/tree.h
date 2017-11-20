@@ -103,12 +103,12 @@ class TreeBase
     std::vector<std::string> agentNames_;
 
   public:
+
     TreeBase();
     TreeBase(mesh::StlMesh *mesh, volumetric_mapping::OctomapManager *manager);
     ~TreeBase();
 
     virtual void setStateFromPoseMsg(const geometry_msgs::PoseWithCovarianceStamped &pose) = 0;
-    virtual void setStateFromOdometryMsg(const nav_msgs::Odometry &pose) = 0;
     virtual void setPeerStateFromPoseMsg(const geometry_msgs::PoseWithCovarianceStamped &pose, int n_peer) = 0;
 
     void setPeerStateFromPoseMsg1(const geometry_msgs::PoseWithCovarianceStamped &pose);
@@ -122,14 +122,15 @@ class TreeBase
     virtual void memorizeBestBranch() = 0;
     virtual void clear() = 0;
 
-    virtual std::vector<geometry_msgs::Pose> getBestEdge(std::string targetFrame) = 0;
-    virtual std::vector<geometry_msgs::Pose> getPathBackToPrevious(std::string targetFrame) = 0;
-
     void setParams(Params params);
     int getCounter();
     bool gainFound();
-    
+
     void insertPointcloudWithTf(const sensor_msgs::PointCloud2::ConstPtr &pointcloud);
+
+    virtual bool DoesDirectPathHasCollisions(stateVec nextPoint) = 0;
+    virtual double eulerDistToCurrentState(stateVec nextPoint) = 0;
+    virtual std::vector<geometry_msgs::Pose> getPathToNewPoint(stateVec nextPoint, std::string targetFrame) = 0;
 };
 }
 

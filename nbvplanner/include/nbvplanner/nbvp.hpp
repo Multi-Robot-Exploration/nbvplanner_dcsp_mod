@@ -18,13 +18,19 @@
 #define NBVP_HPP_
 
 #include <fstream>
+#include <string>
+#include <cstring>
+#include <sstream>
+
+#include <ros/console.h>
+
 #include <eigen3/Eigen/Dense>
-#include <visualization_msgs/Marker.h>
 #include <nbvplanner/nbvp.h>
 #include <octomap_msgs/conversions.h>
 
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Point.h>
+#include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include <frontier_detection/freespace_frontier_extractor.h>
@@ -36,34 +42,26 @@
 using namespace Eigen;
 
 template <typename stateVec>
-nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle &nh,
-                                                const ros::NodeHandle &nh_private)
-    : nh_(nh),
-      nh_private_(nh_private)
+nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle &nh, const ros::NodeHandle &nh_private)
+    : nh_(nh), nh_private_(nh_private)
 {
 
     manager_ = new volumetric_mapping::OctomapManager(nh_, nh_private_);
 
     // Set up the topics and services
-    pub_frontiers_points = nh_.advertise<visualization_msgs::MarkerArray>("frontierPoints", 2000, true);
+    pub_frontiers_points = nh_.advertise<visualization_msgs::MarkerArray>("frontierPoints", 1000, true);
+    pub_selected_frontiers_point = nh_.advertise<visualization_msgs::Marker>("selectedfrontierPoint", 1000, true);
 
     params_.inspectionPath_ = nh_.advertise<visualization_msgs::Marker>("inspectionPath", 1000);
+
     evadePub_ = nh_.advertise<multiagent_collision_check::Segment>("/evasionSegment", 100);
-    plannerService_ = nh_.advertiseService("nbvplanner",
-                                           &nbvInspection::nbvPlanner<stateVec>::plannerCallback,
-                                           this);
+
+    plannerService_ = nh_.advertiseService("nbvplanner", &nbvInspection::nbvPlanner<stateVec>::plannerCallback, this);
+
     posClient_ = nh_.subscribe("pose", 10, &nbvInspection::nbvPlanner<stateVec>::posCallback, this);
-    odomClient_ = nh_.subscribe("odometry", 10, &nbvInspection::nbvPlanner<stateVec>::odomCallback, this);
 
     pointcloud_sub_ = nh_.subscribe("pointcloud_throttled", 1,
-                                    &nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTf,
-                                    this);
-    pointcloud_sub_cam_up_ = nh_.subscribe(
-        "pointcloud_throttled_up", 1,
-        &nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTfCamUp, this);
-    pointcloud_sub_cam_down_ = nh_.subscribe(
-        "pointcloud_throttled_down", 1,
-        &nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTfCamDown, this);
+                                    &nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTf, this);
 
     if (!setParams())
     {
@@ -98,49 +96,23 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle &nh,
         params_.camBoundNormals_.push_back(camBoundNormals);
     }
 
-    // Load mesh from STL file if provided.
-    std::string ns = ros::this_node::getName();
-    std::string stlPath = "";
     mesh_ = NULL;
-    if (ros::param::get(ns + "/stl_file_path", stlPath))
-    {
-        if (stlPath.length() > 0)
-        {
-            if (ros::param::get(ns + "/mesh_resolution", params_.meshResolution_))
-            {
-                std::fstream stlFile;
-                stlFile.open(stlPath.c_str());
-                if (stlFile.is_open())
-                {
-                    mesh_ = new mesh::StlMesh(stlFile);
-                    mesh_->setResolution(params_.meshResolution_);
-                    mesh_->setOctomapManager(manager_);
-                    mesh_->setCameraParams(params_.camPitch_, params_.camHorizontal_, params_.camVertical_,
-                                           params_.gainRange_);
-                }
-                else
-                {
-                    ROS_WARN("Unable to open STL file");
-                }
-            }
-            else
-            {
-                ROS_WARN("STL mesh file path specified but mesh resolution parameter missing!");
-            }
-        }
-    }
     // Initialize the tree instance.
     tree_ = new RrtTree(mesh_, manager_);
+
     tree_->setParams(params_);
+
     peerPosClient1_ = nh_.subscribe("peer_pose_1", 10,
                                     &nbvInspection::RrtTree::setPeerStateFromPoseMsg1, tree_);
     peerPosClient2_ = nh_.subscribe("peer_pose_2", 10,
                                     &nbvInspection::RrtTree::setPeerStateFromPoseMsg2, tree_);
     peerPosClient3_ = nh_.subscribe("peer_pose_3", 10,
                                     &nbvInspection::RrtTree::setPeerStateFromPoseMsg3, tree_);
+
     // Subscribe to topic used for the collaborative collision avoidance (don't hit your peer).
     evadeClient_ = nh_.subscribe("/evasionSegment", 10, &nbvInspection::TreeBase<stateVec>::evade,
                                  tree_);
+
     // Not yet ready. Needs a position message first.
     ready_ = false;
 }
@@ -159,26 +131,16 @@ nbvInspection::nbvPlanner<stateVec>::~nbvPlanner()
 }
 
 template <typename stateVec>
-void nbvInspection::nbvPlanner<stateVec>::posCallback(
-    const geometry_msgs::PoseWithCovarianceStamped &pose)
+void nbvInspection::nbvPlanner<stateVec>::posCallback(const geometry_msgs::PoseWithCovarianceStamped &pose)
 {
+    //ROS_INFO("++++++++++++++++++++++++++++++POSE CALLBACK+++++++++++++");
     tree_->setStateFromPoseMsg(pose);
     // Planner is now ready to plan.
     ready_ = true;
 }
 
 template <typename stateVec>
-void nbvInspection::nbvPlanner<stateVec>::odomCallback(
-    const nav_msgs::Odometry &pose)
-{
-    tree_->setStateFromOdometryMsg(pose);
-    // Planner is now ready to plan.
-    ready_ = true;
-}
-
-template <typename stateVec>
-bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::Request &req,
-                                                          nbvplanner::nbvp_srv::Response &res)
+bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::Request &req, nbvplanner::nbvp_srv::Response &res)
 {
     ros::Time computationTime = ros::Time::now();
     // Check that planner is ready to compute path.
@@ -187,7 +149,6 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
         ROS_INFO_THROTTLE(1, "Exploration finished. Not planning any further moves.");
         return true;
     }
-
     if (!ready_)
     {
         ROS_ERROR_THROTTLE(1, "Planner not set up: Planner not ready!");
@@ -206,24 +167,19 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
 
     ROS_INFO("Planner is called. %2.3f", req.header.seq);
 
+    std::string name = params_.navigationFrame_;
+    ROS_INFO("/////////////////////////");
+    ROS_INFO(name.c_str());
+    ROS_INFO("/////////////////////////");
+
     tree_->clear();
     tree_->initialize();
 
     res.path.clear();
 
-    //octomap_msgs::GetOctomap Octosrv;
     octomap::OcTree *octree;
 
-    // if (req.header.seq > 1)
-    // {
-    //bool boo = ros::service::call("/firefly/nbvPlanner/get_map", true)
-    // ros::ServiceClient client = nh_.serviceClient<octomap_msgs::GetOctomap>("/firefly/nbvPlanner/get_map");
-    // octomap_msgs::GetOctomap Octosrv;
-
     ROS_INFO("Getting Current Octomap");
-
-    //octomap_msgs::Octomap *OctomapMsg; // = Octosrv.response.map;
-    // octomap::AbstractOcTree *tree = octomap_msgs::fullMsgToMap(OctomapMsg);
 
     std::shared_ptr<octomap::OcTree> octreePtr = manager_->getOctree();
 
@@ -234,71 +190,90 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
 
     frontierExtractor.SetOcTree(&octree);
     std::vector<octomap_frontiers3d::FreeSpaceFrontierRepresentative> frontierVector;
+
+    ROS_INFO("Before extract");
+
+    //stop logging
+    // if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Fatal))
+    // {
+    //     ros::console::notifyLoggerLevelsChanged();
+    // }
+
     frontierExtractor.Extract(frontierVector);
+
+    //restart logging
+    // if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug))
+    // {
+    //     ros::console::notifyLoggerLevelsChanged();
+    // }
 
     ROS_INFO("Filtering Frontiers");
 
     std::vector<octomap_frontiers3d::FreeSpaceFrontierRepresentative>::iterator it;
-    std::vector<geometry_msgs::Point> frontiers_;
+    std::vector<geometry_msgs::Point> reachableFrontierPoints;
+    Eigen::Vector4d nextPoint;
+
+    //distance orderd frontier list
+    std::map<double, geometry_msgs::Point> frontierOrderedMap;
+    bool found = false;
 
     for (it = frontierVector.begin(); it != frontierVector.end(); it++)
     {
         int voxels = (*it).nvx;
-        // std::string s = std::to_string(voxels);
-        // char const *pchar = s.c_str();
-        // ROS_INFO(pchar);
 
-        if (voxels >= 8)
+        if (voxels >= 5)
         {
-            frontiers_.push_back((*it).p);
+            nextPoint << (*it).p.x, (*it).p.y, (*it).p.z, 0;
+
+            if (!tree_->DoesDirectPathHasCollisions(nextPoint))
+            {
+                reachableFrontierPoints.push_back((*it).p);
+
+                double dist = tree_->eulerDistToCurrentState(nextPoint);
+                if (dist >= 3)
+                {
+                    frontierOrderedMap[dist] = (*it).p;
+                    found = true;
+                }
+            }
         }
     }
-
-    visualizeFrontiers(frontiers_);
-
-    ROS_INFO("Done for now.");
-    //ROS_INFO(octree->getTreeType());
-    // }
-
-    // Clear old tree and reinitialize.
-    //   tree_->clear();
-    //   tree_->initialize();
-    vector_t path;
-    // Iterate the tree construction method.
-    int loopCount = 0;
-    while ((!tree_->gainFound() || tree_->getCounter() < params_.initIterations_) && ros::ok())
+    //ROS_INFO("samplePath called: start: %2f, %2f, %2f, %2f end: %2f, %2f, %2f, %2f", start[0], start[1], start[2], start[3], end[0], end[1], end[2], end[3]);
+    if (!found)
     {
-        if (tree_->getCounter() > params_.cuttoffIterations_)
-        {
-            ROS_INFO("No gain found, shutting down");
-            ros::shutdown();
-            return true;
-        }
-        if (loopCount > 1000 * (tree_->getCounter() + 1))
-        {
-            ROS_INFO_THROTTLE(1, "Exceeding maximum failed iterations, return to previous point!");
-            res.path = tree_->getPathBackToPrevious(req.header.frame_id);
-            return true;
-        }
-        tree_->iterate(1);
-        loopCount++;
+        ROS_INFO("****NO SUITABLE FRONTIER FOUND!!****");
+        //res.path = tree_->getPathToNewPoint(tree_->currentState, req.header.frame_id);
     }
-    // Extract the best edge.
-    res.path = tree_->getBestEdge(req.header.frame_id);
-
-    tree_->memorizeBestBranch();
-    // Publish path to block for other agents (multi agent only).
-    multiagent_collision_check::Segment segment;
-    segment.header.stamp = ros::Time::now();
-    segment.header.frame_id = params_.navigationFrame_;
-    if (!res.path.empty())
+    else
     {
-        segment.poses.push_back(res.path.front());
-        segment.poses.push_back(res.path.back());
-    }
-    evadePub_.publish(segment);
+        visualizeFrontiers(reachableFrontierPoints);
 
-    ROS_INFO("Path computation lasted hehe %2.3fs", (ros::Time::now() - computationTime).toSec());
+        ROS_INFO("Selecting next frontier to navigate.");
+        //call DCSP for collaborative decisions on frontiers
+
+        // for (std::map<double, geometry_msgs::Point>::iterator mapit = frontierOrderedMap.begin(); mapit != frontierOrderedMap.end(); ++mapit)
+        // {
+        //     std::stringstream ss;
+        //     ss << mapit->first;
+        //     ROS_INFO("dist: %s, x:%f, y:%f, z:%f,", ss.str().c_str(), mapit->second.x, mapit->second.y, mapit->second.z);
+        // }
+
+        geometry_msgs::Point selectedPoint = frontierOrderedMap.begin()->second;
+        std::stringstream ss;
+        ss << frontierOrderedMap.begin()->first;
+
+        Eigen::Vector4d eigenPoint(selectedPoint.x, selectedPoint.y, selectedPoint.z, 0);
+
+        ROS_INFO("dist: %s, x:%f, y:%f, z:%f,", ss.str().c_str(), selectedPoint.x, selectedPoint.y, selectedPoint.z);
+        
+        visualizeSelectedFrontier(selectedPoint);
+
+        res.path = tree_->getPathToNewPoint(eigenPoint, req.header.frame_id);
+
+        ROS_INFO("Frontier Selected. Now navigating.");
+    }
+
+    ROS_INFO("Path computation lasted %2.3fs", (ros::Time::now() - computationTime).toSec());
     return true;
 }
 
@@ -325,38 +300,95 @@ void nbvInspection::nbvPlanner<stateVec>::visualizeFrontiers(std::vector<geometr
         marker.pose.orientation.y = 0.0;
         marker.pose.orientation.z = 0.0;
         marker.pose.orientation.w = 1.0;
-        marker.scale.x = 0.1;
-        marker.scale.y = 0.1;
-        marker.scale.z = 0.1;
+        marker.scale.x = 0.2;
+        marker.scale.y = 0.2;
+        marker.scale.z = 0.2;
 
-        marker.color.a = 1.0;
+        marker.color.a = 0.6;
         marker.color.r = 1.0;
         marker.color.g = 0.0;
         marker.color.b = 0.0;
 
-        // if(frontiers.at(i).detected_by_robot == robot_name)
-        // {
-        //     marker.color.r = 1.0;
-        //     marker.color.g = 0.0;
-        //     marker.color.b = 0.0;
-        // }
-        // if(frontiers.at(i).detected_by_robot == 1)
-        // {
-        //     marker.color.r = 0.0;
-        //     marker.color.g = 1.0;
-        //     marker.color.b = 0.0;
-        // }
-        // if(frontiers.at(i).detected_by_robot == 2)
-        // {
-        //     marker.color.r = 0.0;
-        //     marker.color.g = 0.0;
-        //     marker.color.b = 1.0;
-        // }
+        std::string name = params_.navigationFrame_;
+        // ROS_INFO("/////////////////////////");
+        // ROS_INFO(name.c_str());
+        // ROS_INFO("/////////////////////////");
+
+        if (name == "firefly1")
+        {
+            marker.color.r = 1.0;
+            marker.color.g = 0.0;
+            marker.color.b = 0.0;
+        }
+        if (name == "firefly2")
+        {
+            marker.color.r = 0.0;
+            marker.color.g = 1.0;
+            marker.color.b = 0.0;
+        }
+        if (name == "firefly3")
+        {
+            marker.color.r = 0.0;
+            marker.color.g = 0.0;
+            marker.color.b = 1.0;
+        }
 
         markerArray.markers.push_back(marker);
     }
 
     pub_frontiers_points.publish<visualization_msgs::MarkerArray>(markerArray);
+}
+
+template <typename stateVec>
+void nbvInspection::nbvPlanner<stateVec>::visualizeSelectedFrontier(geometry_msgs::Point selectedFrontier)
+{
+    visualization_msgs::Marker marker;
+
+    marker.header.frame_id = "world";
+    marker.header.stamp = ros::Time::now();
+    marker.header.seq = 0;
+    marker.ns = "my_namespace";
+    marker.id = 0;
+    marker.type = visualization_msgs::Marker::SPHERE;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.pose.position.x = selectedFrontier.x;
+    marker.pose.position.y = selectedFrontier.y;
+    marker.pose.position.z = selectedFrontier.z;
+    marker.pose.orientation.x = 0.0;
+    marker.pose.orientation.y = 0.0;
+    marker.pose.orientation.z = 0.0;
+    marker.pose.orientation.w = 1.0;
+    marker.scale.x = 0.4;
+    marker.scale.y = 0.4;
+    marker.scale.z = 0.4;
+
+    marker.color.a = 1.0;
+    marker.color.r = 1.0;
+    marker.color.g = 0.0;
+    marker.color.b = 0.0;
+
+    std::string name = params_.navigationFrame_;
+
+    if (name == "firefly1")
+    {
+        marker.color.r = 1.0;
+        marker.color.g = 0.0;
+        marker.color.b = 0.0;
+    }
+    if (name == "firefly2")
+    {
+        marker.color.r = 0.0;
+        marker.color.g = 1.0;
+        marker.color.b = 0.0;
+    }
+    if (name == "firefly3")
+    {
+        marker.color.r = 0.0;
+        marker.color.g = 0.0;
+        marker.color.b = 1.0;
+    }
+
+    pub_selected_frontiers_point.publish<visualization_msgs::Marker>(marker);
 }
 
 template <typename stateVec>
@@ -581,8 +613,7 @@ bool nbvInspection::nbvPlanner<stateVec>::setParams()
 }
 
 template <typename stateVec>
-void nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTf(
-    const sensor_msgs::PointCloud2::ConstPtr &pointcloud)
+void nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTf(const sensor_msgs::PointCloud2::ConstPtr &pointcloud)
 {
 
     //ROS_INFO_THROTTLE(1, "PointCloud Data Received.");
@@ -597,32 +628,7 @@ void nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTf(
 }
 
 template <typename stateVec>
-void nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTfCamUp(
-    const sensor_msgs::PointCloud2::ConstPtr &pointcloud)
-{
-    static double last = ros::Time::now().toSec();
-    if (last + params_.pcl_throttle_ < ros::Time::now().toSec())
-    {
-        tree_->insertPointcloudWithTf(pointcloud);
-        last += params_.pcl_throttle_;
-    }
-}
-
-template <typename stateVec>
-void nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTfCamDown(
-    const sensor_msgs::PointCloud2::ConstPtr &pointcloud)
-{
-    static double last = ros::Time::now().toSec();
-    if (last + params_.pcl_throttle_ < ros::Time::now().toSec())
-    {
-        tree_->insertPointcloudWithTf(pointcloud);
-        last += params_.pcl_throttle_;
-    }
-}
-
-template <typename stateVec>
-void nbvInspection::nbvPlanner<stateVec>::evasionCallback(
-    const multiagent_collision_check::Segment &segmentMsg)
+void nbvInspection::nbvPlanner<stateVec>::evasionCallback(const multiagent_collision_check::Segment &segmentMsg)
 {
     tree_->evade(segmentMsg);
 }

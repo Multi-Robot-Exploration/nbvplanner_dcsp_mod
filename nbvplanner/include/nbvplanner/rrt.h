@@ -43,7 +43,6 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
     ~RrtTree();
 
     virtual void setStateFromPoseMsg(const geometry_msgs::PoseWithCovarianceStamped &pose);
-    virtual void setStateFromOdometryMsg(const nav_msgs::Odometry &pose);
     virtual void setPeerStateFromPoseMsg(const geometry_msgs::PoseWithCovarianceStamped &pose, int n_peer);
 
     virtual void initialize();
@@ -51,14 +50,14 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
     virtual void clear();
     virtual void memorizeBestBranch();
 
-    virtual std::vector<geometry_msgs::Pose> getBestEdge(std::string targetFrame);
-    virtual std::vector<geometry_msgs::Pose> getPathBackToPrevious(std::string targetFrame);
+    virtual std::vector<geometry_msgs::Pose> getPathToNewPoint(StateVec nextPoint, std::string targetFrame);
 
     void publishNode(Node<StateVec> *node);
     double gain(StateVec state);
 
-    std::vector<geometry_msgs::Pose> samplePath(StateVec start, StateVec end,
-                                                std::string targetFrame);
+    std::vector<geometry_msgs::Pose> samplePath(StateVec start, StateVec end, std::string targetFrame);
+    virtual bool DoesDirectPathHasCollisions(StateVec nextPoint);
+    virtual double eulerDistToCurrentState(StateVec nextPoint);
 
   protected:
     kdtree *kdTree_;
@@ -71,6 +70,8 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
     std::fstream fileResponse_;
     std::string logFilePath_;
     std::vector<double> inspectionThrottleTime_;
+
+    StateVec currentState;
 };
 }
 

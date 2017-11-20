@@ -56,6 +56,7 @@ class nbvPlanner
     ros::Subscriber pointcloud_sub_cam_down_;
 
     ros::Publisher pub_frontiers_points;
+    ros::Publisher pub_selected_frontiers_point;
 
     Params params_;
     mesh::StlMesh *mesh_;
@@ -78,6 +79,7 @@ class nbvPlanner
     void insertPointcloudWithTfCamDown(const sensor_msgs::PointCloud2::ConstPtr &pointcloud);
     void evasionCallback(const multiagent_collision_check::Segment &segmentMsg);
     void visualizeFrontiers(std::vector<geometry_msgs::Point> frontiers);
+    void visualizeSelectedFrontier(geometry_msgs::Point selectedFrontier);
 };
 
 }

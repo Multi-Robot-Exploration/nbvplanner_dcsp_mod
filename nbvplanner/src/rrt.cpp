@@ -22,78 +22,78 @@
 #include <nbvplanner/rrt.h>
 #include <nbvplanner/tree.hpp>
 
-nbvInspection::RrtTree::RrtTree() : nbvInspection::TreeBase<StateVec>::TreeBase()
+nbvInspection::RrtTree::RrtTree()
+    : nbvInspection::TreeBase<StateVec>::TreeBase()
 {
-    kdTree_ = kd_create(3);
-    iterationCount_ = 0;
-    for (int i = 0; i < 4; i++)
-    {
-        inspectionThrottleTime_.push_back(ros::Time::now().toSec());
-    }
+  kdTree_ = kd_create(3);
+  iterationCount_ = 0;
+  for (int i = 0; i < 4; i++) {
+    inspectionThrottleTime_.push_back(ros::Time::now().toSec());
+  }
 
-    // If logging is required, set up files here
-    bool ifLog = false;
-    std::string ns = ros::this_node::getName();
-    ros::param::get(ns + "/nbvp/log/on", ifLog);
-    if (ifLog)
-    {
-        time_t rawtime;
-        struct tm *ptm;
-        time(&rawtime);
-        ptm = gmtime(&rawtime);
-        logFilePath_ = ros::package::getPath("nbvplanner") + "/data/" + std::to_string(ptm->tm_year + 1900) + "_" + std::to_string(ptm->tm_mon + 1) + "_" + std::to_string(ptm->tm_mday) + "_" + std::to_string(ptm->tm_hour) + "_" + std::to_string(ptm->tm_min) + "_" + std::to_string(ptm->tm_sec);
-        system(("mkdir -p " + logFilePath_).c_str());
-        logFilePath_ += "/";
-        fileResponse_.open((logFilePath_ + "response.txt").c_str(), std::ios::out);
-        filePath_.open((logFilePath_ + "path.txt").c_str(), std::ios::out);
-    }
+  // If logging is required, set up files here
+  bool ifLog = false;
+  std::string ns = ros::this_node::getName();
+  ros::param::get(ns + "/nbvp/log/on", ifLog);
+  if (ifLog) {
+    time_t rawtime;
+    struct tm * ptm;
+    time(&rawtime);
+    ptm = gmtime(&rawtime);
+    logFilePath_ = ros::package::getPath("nbvplanner") + "/data/"
+        + std::to_string(ptm->tm_year + 1900) + "_" + std::to_string(ptm->tm_mon + 1) + "_"
+        + std::to_string(ptm->tm_mday) + "_" + std::to_string(ptm->tm_hour) + "_"
+        + std::to_string(ptm->tm_min) + "_" + std::to_string(ptm->tm_sec);
+    system(("mkdir -p " + logFilePath_).c_str());
+    logFilePath_ += "/";
+    fileResponse_.open((logFilePath_ + "response.txt").c_str(), std::ios::out);
+    filePath_.open((logFilePath_ + "path.txt").c_str(), std::ios::out);
+  }
 }
 
-nbvInspection::RrtTree::RrtTree(mesh::StlMesh *mesh, volumetric_mapping::OctomapManager *manager)
+nbvInspection::RrtTree::RrtTree(mesh::StlMesh * mesh, volumetric_mapping::OctomapManager * manager)
 {
-    mesh_ = mesh;
-    manager_ = manager;
-    kdTree_ = kd_create(3);
-    iterationCount_ = 0;
-    for (int i = 0; i < 4; i++)
-    {
-        inspectionThrottleTime_.push_back(ros::Time::now().toSec());
-    }
+  mesh_ = mesh;
+  manager_ = manager;
+  kdTree_ = kd_create(3);
+  iterationCount_ = 0;
+  for (int i = 0; i < 4; i++) {
+    inspectionThrottleTime_.push_back(ros::Time::now().toSec());
+  }
 
-    // If logging is required, set up files here
-    bool ifLog = false;
-    std::string ns = ros::this_node::getName();
-    ros::param::get(ns + "/nbvp/log/on", ifLog);
-    if (ifLog)
-    {
-        time_t rawtime;
-        struct tm *ptm;
-        time(&rawtime);
-        ptm = gmtime(&rawtime);
-        logFilePath_ = ros::package::getPath("nbvplanner") + "/data/" + std::to_string(ptm->tm_year + 1900) + "_" + std::to_string(ptm->tm_mon + 1) + "_" + std::to_string(ptm->tm_mday) + "_" + std::to_string(ptm->tm_hour) + "_" + std::to_string(ptm->tm_min) + "_" + std::to_string(ptm->tm_sec);
-        system(("mkdir -p " + logFilePath_).c_str());
-        logFilePath_ += "/";
-        fileResponse_.open((logFilePath_ + "response.txt").c_str(), std::ios::out);
-        filePath_.open((logFilePath_ + "path.txt").c_str(), std::ios::out);
-    }
+  // If logging is required, set up files here
+  bool ifLog = false;
+  std::string ns = ros::this_node::getName();
+  ros::param::get(ns + "/nbvp/log/on", ifLog);
+  if (ifLog) {
+    time_t rawtime;
+    struct tm * ptm;
+    time(&rawtime);
+    ptm = gmtime(&rawtime);
+    logFilePath_ = ros::package::getPath("nbvplanner") + "/data/"
+        + std::to_string(ptm->tm_year + 1900) + "_" + std::to_string(ptm->tm_mon + 1) + "_"
+        + std::to_string(ptm->tm_mday) + "_" + std::to_string(ptm->tm_hour) + "_"
+        + std::to_string(ptm->tm_min) + "_" + std::to_string(ptm->tm_sec);
+    system(("mkdir -p " + logFilePath_).c_str());
+    logFilePath_ += "/";
+    fileResponse_.open((logFilePath_ + "response.txt").c_str(), std::ios::out);
+    filePath_.open((logFilePath_ + "path.txt").c_str(), std::ios::out);
+  }
 }
 
 nbvInspection::RrtTree::~RrtTree()
 {
-    delete rootNode_;
-    kd_free(kdTree_);
-    if (fileResponse_.is_open())
-    {
-        fileResponse_.close();
-    }
-    if (fileTree_.is_open())
-    {
-        fileTree_.close();
-    }
-    if (filePath_.is_open())
-    {
-        filePath_.close();
-    }
+  delete rootNode_;
+  kd_free(kdTree_);
+  if (fileResponse_.is_open()) {
+    fileResponse_.close();
+  }
+  if (fileTree_.is_open()) {
+    fileTree_.close();
+  }
+  if (filePath_.is_open()) {
+    filePath_.close();
+  }
 }
 
 void nbvInspection::RrtTree::setStateFromPoseMsg(const geometry_msgs::PoseWithCovarianceStamped &pose)
@@ -121,161 +121,10 @@ void nbvInspection::RrtTree::setStateFromPoseMsg(const geometry_msgs::PoseWithCo
     tf::Quaternion quat = poseTF.getRotation();
     quat = transform * quat;
 
-    root_[0] = position.x();
-    root_[1] = position.y();
-    root_[2] = position.z();
-    root_[3] = tf::getYaw(quat);
-
-    // Log the vehicle response in the planning frame
-    static double logThrottleTime = ros::Time::now().toSec();
-    if (ros::Time::now().toSec() - logThrottleTime > params_.log_throttle_)
-    {
-        logThrottleTime += params_.log_throttle_;
-        if (params_.log_)
-        {
-            for (int i = 0; i < root_.size() - 1; i++)
-            {
-                fileResponse_ << root_[i] << ",";
-            }
-            fileResponse_ << root_[root_.size() - 1] << "\n";
-        }
-    }
-    // Update the inspected parts of the mesh using the current position
-    if (ros::Time::now().toSec() - inspectionThrottleTime_[0] > params_.inspection_throttle_)
-    {
-        inspectionThrottleTime_[0] += params_.inspection_throttle_;
-        if (mesh_)
-        {
-            geometry_msgs::Pose poseTransformed;
-            tf::poseTFToMsg(transform * poseTF, poseTransformed);
-            mesh_->setPeerPose(poseTransformed, 0);
-            mesh_->incorporateViewFromPoseMsg(poseTransformed, 0);
-            // Publish the mesh marker for visualization in rviz
-            visualization_msgs::Marker inspected;
-            inspected.ns = "meshInspected";
-            inspected.id = 0;
-            inspected.header.seq = inspected.id;
-            inspected.header.stamp = pose.header.stamp;
-            inspected.header.frame_id = params_.navigationFrame_;
-            inspected.type = visualization_msgs::Marker::TRIANGLE_LIST;
-            inspected.lifetime = ros::Duration(10);
-            inspected.action = visualization_msgs::Marker::ADD;
-            inspected.pose.position.x = 0.0;
-            inspected.pose.position.y = 0.0;
-            inspected.pose.position.z = 0.0;
-            inspected.pose.orientation.x = 0.0;
-            inspected.pose.orientation.y = 0.0;
-            inspected.pose.orientation.z = 0.0;
-            inspected.pose.orientation.w = 1.0;
-            inspected.scale.x = 1.0;
-            inspected.scale.y = 1.0;
-            inspected.scale.z = 1.0;
-            visualization_msgs::Marker uninspected = inspected;
-            uninspected.header.seq++;
-            uninspected.id++;
-            uninspected.ns = "meshUninspected";
-            mesh_->assembleMarkerArray(inspected, uninspected);
-            if (inspected.points.size() > 0)
-            {
-                params_.inspectionPath_.publish(inspected);
-            }
-            if (uninspected.points.size() > 0)
-            {
-                params_.inspectionPath_.publish(uninspected);
-            }
-        }
-    }
-}
-
-void nbvInspection::RrtTree::setStateFromOdometryMsg(const nav_msgs::Odometry &pose)
-{
-    // Get latest transform to the planning frame and transform the pose
-    static tf::TransformListener listener;
-    tf::StampedTransform transform;
-
-    try
-    {
-        listener.lookupTransform(params_.navigationFrame_, pose.header.frame_id, pose.header.stamp, transform);
-    }
-    catch (tf::TransformException ex)
-    {
-        ROS_ERROR("%s", ex.what());
-        return;
-    }
-
-    tf::Pose poseTF;
-    tf::poseMsgToTF(pose.pose.pose, poseTF);
-    tf::Vector3 position = poseTF.getOrigin();
-
-    position = transform * position;
-
-    tf::Quaternion quat = poseTF.getRotation();
-    quat = transform * quat;
-
-    root_[0] = position.x();
-    root_[1] = position.y();
-    root_[2] = position.z();
-    root_[3] = tf::getYaw(quat);
-
-    // Log the vehicle response in the planning frame
-    static double logThrottleTime = ros::Time::now().toSec();
-    if (ros::Time::now().toSec() - logThrottleTime > params_.log_throttle_)
-    {
-        logThrottleTime += params_.log_throttle_;
-        if (params_.log_)
-        {
-            for (int i = 0; i < root_.size() - 1; i++)
-            {
-                fileResponse_ << root_[i] << ",";
-            }
-            fileResponse_ << root_[root_.size() - 1] << "\n";
-        }
-    }
-    // Update the inspected parts of the mesh using the current position
-    if (ros::Time::now().toSec() - inspectionThrottleTime_[0] > params_.inspection_throttle_)
-    {
-        inspectionThrottleTime_[0] += params_.inspection_throttle_;
-        if (mesh_)
-        {
-            geometry_msgs::Pose poseTransformed;
-            tf::poseTFToMsg(transform * poseTF, poseTransformed);
-            mesh_->setPeerPose(poseTransformed, 0);
-            mesh_->incorporateViewFromPoseMsg(poseTransformed, 0);
-            // Publish the mesh marker for visualization in rviz
-            visualization_msgs::Marker inspected;
-            inspected.ns = "meshInspected";
-            inspected.id = 0;
-            inspected.header.seq = inspected.id;
-            inspected.header.stamp = pose.header.stamp;
-            inspected.header.frame_id = params_.navigationFrame_;
-            inspected.type = visualization_msgs::Marker::TRIANGLE_LIST;
-            inspected.lifetime = ros::Duration(10);
-            inspected.action = visualization_msgs::Marker::ADD;
-            inspected.pose.position.x = 0.0;
-            inspected.pose.position.y = 0.0;
-            inspected.pose.position.z = 0.0;
-            inspected.pose.orientation.x = 0.0;
-            inspected.pose.orientation.y = 0.0;
-            inspected.pose.orientation.z = 0.0;
-            inspected.pose.orientation.w = 1.0;
-            inspected.scale.x = 1.0;
-            inspected.scale.y = 1.0;
-            inspected.scale.z = 1.0;
-            visualization_msgs::Marker uninspected = inspected;
-            uninspected.header.seq++;
-            uninspected.id++;
-            uninspected.ns = "meshUninspected";
-            mesh_->assembleMarkerArray(inspected, uninspected);
-            if (inspected.points.size() > 0)
-            {
-                params_.inspectionPath_.publish(inspected);
-            }
-            if (uninspected.points.size() > 0)
-            {
-                params_.inspectionPath_.publish(uninspected);
-            }
-        }
-    }
+    currentState[0] = position.x();
+    currentState[1] = position.y();
+    currentState[2] = position.z();
+    currentState[3] = tf::getYaw(quat);
 }
 
 void nbvInspection::RrtTree::setPeerStateFromPoseMsg(const geometry_msgs::PoseWithCovarianceStamped &pose, int n_peer)
@@ -419,6 +268,26 @@ void nbvInspection::RrtTree::iterate(int iterations)
     }
 }
 
+bool nbvInspection::RrtTree::DoesDirectPathHasCollisions(StateVec nextPoint){
+    Eigen::Vector3d origin(currentState[0], currentState[1], currentState[2]);
+    Eigen::Vector3d destination(nextPoint[0], nextPoint[1], nextPoint[2]);
+    volumetric_mapping::OctomapManager::CellStatus status;
+    status = manager_->getLineStatusBoundingBox(origin, destination, params_.boundingBox_);
+
+    if(status == volumetric_mapping::OctomapManager::CellStatus::kFree){
+        return false;
+    }else{
+        return true;
+    }
+}
+
+double nbvInspection::RrtTree::eulerDistToCurrentState(StateVec nextPoint){
+    double xx = pow((nextPoint[0]-currentState[0]),2.0);
+    double yy = pow((nextPoint[1]-currentState[1]),2.0);
+    double zz = pow((nextPoint[2]-currentState[2]),2.0);
+    return sqrt(xx+yy+zz);
+}
+
 void nbvInspection::RrtTree::initialize()
 {
     // This function is to initialize the tree, including insertion of remainder of previous best branch.
@@ -556,24 +425,6 @@ void nbvInspection::RrtTree::initialize()
     params_.inspectionPath_.publish(p);
 }
 
-std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::getBestEdge(std::string targetFrame)
-{
-    // This function returns the first edge of the best branch
-    std::vector<geometry_msgs::Pose> ret;
-    nbvInspection::Node<StateVec> *current = bestNode_;
-    if (current->parent_ != NULL)
-    {
-        while (current->parent_ != rootNode_ && current->parent_ != NULL)
-        {
-            current = current->parent_;
-        }
-        ret = samplePath(current->parent_->state_, current->state_, targetFrame);
-        history_.push(current->parent_->state_);
-        exact_root_ = current->state_;
-    }
-    return ret;
-}
-
 double nbvInspection::RrtTree::gain(StateVec state)
 {
     // This function computes the gain
@@ -678,19 +529,6 @@ double nbvInspection::RrtTree::gain(StateVec state)
     return gain;
 }
 
-std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::getPathBackToPrevious(
-    std::string targetFrame)
-{
-    std::vector<geometry_msgs::Pose> ret;
-    if (history_.empty())
-    {
-        return ret;
-    }
-    ret = samplePath(root_, history_.top(), targetFrame);
-    history_.pop();
-    return ret;
-}
-
 void nbvInspection::RrtTree::memorizeBestBranch()
 {
     bestBranchMemory_.clear();
@@ -793,10 +631,17 @@ void nbvInspection::RrtTree::publishNode(Node<StateVec> *node)
     }
 }
 
+std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::getPathToNewPoint(StateVec nextPoint, std::string targetFrame)
+{
+    std::vector<geometry_msgs::Pose> ret;
+    ret = samplePath(currentState, nextPoint, targetFrame);
+    return ret;
+}
+
 std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::samplePath(StateVec start, StateVec end, std::string targetFrame)
 {
 
-    ROS_INFO("samplePath called: start: %2f, %2f, %2f, %2f end: %2f, %2f, %2f, %2f", start[0],start[1],start[2],start[3],end[0],end[1],end[2],end[3]);
+    //ROS_INFO("samplePath called: start: %2f, %2f, %2f, %2f end: %2f, %2f, %2f, %2f", start[0], start[1], start[2], start[3], end[0], end[1], end[2], end[3]);
 
     std::vector<geometry_msgs::Pose> ret;
     static tf::TransformListener listener;

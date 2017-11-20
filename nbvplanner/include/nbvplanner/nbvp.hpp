@@ -63,6 +63,18 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle &nh, const
     pointcloud_sub_ = nh_.subscribe("pointcloud_throttled", 1,
                                     &nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTf, this);
 
+
+    std::string ns = ros::this_node::getName();
+    my_name = "defaultName";
+    if (!ros::param::get(ns + "/mv_name", my_name))
+    {
+        ROS_WARN("No nname. Looking for name. Default is 'default_name.",
+                 (ns + "/my_name").c_str());
+    }
+
+
+
+
     if (!setParams())
     {
         ROS_ERROR("Could not start the planner. Parameters missing!");
@@ -309,24 +321,24 @@ void nbvInspection::nbvPlanner<stateVec>::visualizeFrontiers(std::vector<geometr
         marker.color.g = 0.0;
         marker.color.b = 0.0;
 
-        std::string name = params_.navigationFrame_;
+        //std::string name = params_.navigationFrame_;
         // ROS_INFO("/////////////////////////");
         // ROS_INFO(name.c_str());
         // ROS_INFO("/////////////////////////");
 
-        if (name == "firefly1")
+        if (my_name == "firefly1")
         {
             marker.color.r = 1.0;
             marker.color.g = 0.0;
             marker.color.b = 0.0;
         }
-        if (name == "firefly2")
+        if (my_name == "firefly2")
         {
             marker.color.r = 0.0;
             marker.color.g = 1.0;
             marker.color.b = 0.0;
         }
-        if (name == "firefly3")
+        if (my_name == "firefly3")
         {
             marker.color.r = 0.0;
             marker.color.g = 0.0;
@@ -367,21 +379,21 @@ void nbvInspection::nbvPlanner<stateVec>::visualizeSelectedFrontier(geometry_msg
     marker.color.g = 0.0;
     marker.color.b = 0.0;
 
-    std::string name = params_.navigationFrame_;
+    //std::string name = params_.navigationFrame_;
 
-    if (name == "firefly1")
+    if (my_name == "firefly1")
     {
         marker.color.r = 1.0;
         marker.color.g = 0.0;
         marker.color.b = 0.0;
     }
-    if (name == "firefly2")
+    if (my_name == "firefly2")
     {
         marker.color.r = 0.0;
         marker.color.g = 1.0;
         marker.color.b = 0.0;
     }
-    if (name == "firefly3")
+    if (my_name == "firefly3")
     {
         marker.color.r = 0.0;
         marker.color.g = 0.0;

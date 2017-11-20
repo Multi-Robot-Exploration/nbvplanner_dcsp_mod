@@ -61,6 +61,7 @@ class nbvPlanner
     Params params_;
     mesh::StlMesh *mesh_;
     volumetric_mapping::OctomapManager *manager_;
+    std::string my_name;
 
     bool ready_;
 

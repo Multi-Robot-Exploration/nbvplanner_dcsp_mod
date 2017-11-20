@@ -1,0 +1,12 @@
+Header header
+string init_agent_identifier
+customPoint init_point
+string[] agents 		        #the identifiers of the agents in the system 
+customPoint[] my_domain
+string ok_agent_identifier  		# for receive_ok method - empty
+customPoint ok_value  			# for receive_ok method -1,1,1
+agentViewElement[] no_goods  		# for receieve_no_good method
+bool init #true
+bool ok #false
+bool nogood #false
+

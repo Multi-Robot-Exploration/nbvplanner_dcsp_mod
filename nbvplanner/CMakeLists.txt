@@ -31,8 +31,8 @@ generate_messages(
 )
 
 catkin_package(
-  INCLUDE_DIRS include ${Eigen_INCLUDE_DIRS} ${OCTOMAP_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${frontier_detection_INCLUDE_DIRS}
-  LIBRARIES nbvplanner ${catkin_LIBRARIES} ${OCTOMAP_LIBRARIES} ${frontier_detection_LIBRARIES}
+  INCLUDE_DIRS include ${Eigen_INCLUDE_DIRS} ${OCTOMAP_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${frontier_detection_INCLUDE_DIRS} #${dcsp_INCLUDE_DIRS}
+  LIBRARIES nbvplanner ${catkin_LIBRARIES} ${OCTOMAP_LIBRARIES} ${frontier_detection_LIBRARIES} #${dcsp_LIBRARIES}
   CATKIN_DEPENDS message_runtime roscpp geometry_msgs visualization_msgs octomap_world tf kdtree
 )
 
@@ -42,6 +42,7 @@ include_directories(
   ${Eigen_INCLUDE_DIRS}
   ${OCTOMAP_INCLUDE_DIRS}
   ${frontier_detection_INCLUDE_DIRS}
+  #${dcsp_INCLUDE_DIRS}
 )
 
 add_library(nbvPlannerLib src/mesh_structure.cpp src/nbvp.cpp src/rrt.cpp src/tree.cpp)
@@ -52,9 +53,11 @@ target_link_libraries(nbvPlannerLib
   ${catkin_LIBRARIES}
   ${OCTOMAP_LIBRARIES}
   ${frontier_detection_INCLUDE_DIRS}
+  #${dcsp_INCLUDE_DIRS}
 )
 target_link_libraries(nbvPlanner
   ${catkin_LIBRARIES}
   ${OCTOMAP_LIBRARIES}
   ${frontier_detection_INCLUDE_DIRS}
+  #${dcsp_INCLUDE_DIRS}
 )

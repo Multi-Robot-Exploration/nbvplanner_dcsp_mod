@@ -32,6 +32,7 @@
 #include <geometry_msgs/Point.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+//include <dcsp/dcsp_srv.h>
 
 #include <frontier_detection/freespace_frontier_extractor.h>
 #include <frontier_detection/freespace_frontier_representative.h>
@@ -63,17 +64,14 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle &nh, const
     pointcloud_sub_ = nh_.subscribe("pointcloud_throttled", 1,
                                     &nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTf, this);
 
-
     std::string ns = ros::this_node::getName();
     my_name = "defaultName";
     if (!ros::param::get(ns + "/mv_name", my_name))
     {
-        ROS_WARN("No nname. Looking for name. Default is 'default_name.",
-                 (ns + "/my_name").c_str());
+        ROS_WARN("No name. Looking for %s. Default is 'default_name'", (ns + "/mv_name").c_str());
     }
 
-
-
+    ROS_INFO("MY NAME IS: %s", my_name);
 
     if (!setParams())
     {
@@ -179,11 +177,6 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
 
     ROS_INFO("Planner is called. %2.3f", req.header.seq);
 
-    std::string name = params_.navigationFrame_;
-    ROS_INFO("/////////////////////////");
-    ROS_INFO(name.c_str());
-    ROS_INFO("/////////////////////////");
-
     tree_->clear();
     tree_->initialize();
 
@@ -263,24 +256,59 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
         ROS_INFO("Selecting next frontier to navigate.");
         //call DCSP for collaborative decisions on frontiers
 
-        // for (std::map<double, geometry_msgs::Point>::iterator mapit = frontierOrderedMap.begin(); mapit != frontierOrderedMap.end(); ++mapit)
-        // {
-        //     std::stringstream ss;
-        //     ss << mapit->first;
-        //     ROS_INFO("dist: %s, x:%f, y:%f, z:%f,", ss.str().c_str(), mapit->second.x, mapit->second.y, mapit->second.z);
-        // }
+        geometry_msgs::Point selectedPoint;
+        const char *dist = "unknown";
 
-        geometry_msgs::Point selectedPoint = frontierOrderedMap.begin()->second;
-        std::stringstream ss;
-        ss << frontierOrderedMap.begin()->first;
+        std::string serviceName;
 
-        Eigen::Vector4d eigenPoint(selectedPoint.x, selectedPoint.y, selectedPoint.z, 0);
+        if (my_name == "firefly1")
+        {
+            serviceName = "dcsp_service_1";
+        }
+        if (my_name == "firefly2")
+        {
+            serviceName = "dcsp_service_2";
+        }
+        if (my_name == "firefly3")
+        {
+            serviceName = "dcsp_service_3";
+        }
 
-        ROS_INFO("dist: %s, x:%f, y:%f, z:%f,", ss.str().c_str(), selectedPoint.x, selectedPoint.y, selectedPoint.z);
-        
+        bool using_dcsp = false;
+
+        if (using_dcsp)
+        {
+            // dcsp::dcsp_srv dcsp_service;
+
+            // dsc
+
+            // if (ros::service::call(serviceName, dcsp_service))
+            // {
+            //     selectedPoint.x = dcsp_service.response.x;
+            //     selectedPoint.y = dcsp_service.response.y;
+            //     selectedPoint.z = dcsp_service.response.z;
+            // }
+            // else
+            // {
+            //     ROS_WARN("DCSP Service not reachable");
+            // }
+        }
+        else
+        {
+            selectedPoint = frontierOrderedMap.begin()->second;
+
+            std::stringstream ss;
+            ss << frontierOrderedMap.begin()->first;
+            dist = ss.str().c_str();
+        }
+
+        Eigen::Vector4d selectedPointEigen(selectedPoint.x, selectedPoint.y, selectedPoint.z, 0);
+
+        ROS_INFO("dist: %s, x:%f, y:%f, z:%f,", dist, selectedPoint.x, selectedPoint.y, selectedPoint.z);
+
         visualizeSelectedFrontier(selectedPoint);
 
-        res.path = tree_->getPathToNewPoint(eigenPoint, req.header.frame_id);
+        res.path = tree_->getPathToNewPoint(selectedPointEigen, req.header.frame_id);
 
         ROS_INFO("Frontier Selected. Now navigating.");
     }

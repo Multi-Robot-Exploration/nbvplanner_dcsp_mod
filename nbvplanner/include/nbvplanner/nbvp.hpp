@@ -68,10 +68,24 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle &nh, const
     my_name = "defaultName";
     if (!ros::param::get(ns + "/mv_name", my_name))
     {
-        ROS_WARN("No nname. Looking for name. Default is 'default_name.",
-                 (ns + "/my_name").c_str());
+        ROS_WARN("No nname. Looking for %s Default is 'default_name.",
+                 (ns + "/mv_name").c_str());
     }
-
+    ROS_INFO("robot name %s,",my_name);
+    
+    
+    min_voxels = 5.0;
+    if (!ros::param::get(ns + "/min_vox", min_voxels))
+    {
+        ROS_WARN("No min voxels. Looking for %s. Default is '5.0",
+                 (ns + "/min_vox").c_str());
+    }
+    min_dist=3.0;
+    if (!ros::param::get(ns + "/min_dist", min_dist))
+    {
+        ROS_WARN("No min dist. Looking for %s. Default is '3.0.",
+                 (ns + "/min_dist").c_str());
+    }
 
 
 
@@ -233,7 +247,7 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
     {
         int voxels = (*it).nvx;
 
-        if (voxels >= 5)
+        if (voxels >= min_voxels)
         {
             nextPoint << (*it).p.x, (*it).p.y, (*it).p.z, 0;
 
@@ -242,7 +256,7 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
                 reachableFrontierPoints.push_back((*it).p);
 
                 double dist = tree_->eulerDistToCurrentState(nextPoint);
-                if (dist >= 3)
+                if (dist >= min_dist)
                 {
                     frontierOrderedMap[dist] = (*it).p;
                     found = true;

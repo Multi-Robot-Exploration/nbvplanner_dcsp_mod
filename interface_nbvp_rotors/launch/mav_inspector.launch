@@ -46,6 +46,9 @@
     </node>
     <node name="nbvPlanner" pkg="nbvplanner" type="nbvPlanner" output="screen">
       <param name="mv_name" type="string" value="$(arg mav_name)$(arg subscript)"/>
+      <param name="min_vox" type="double" value="$(arg min_vox)"/>
+      <param name="min_dist" type="double" value="$(arg min_dist)"/>
+
       <param name="tf_frame" type="string" value="$(arg tf_frame)" />
       <param name="resolution" type="double" value="$(arg resolution)" />
       <param name="visualize_max_z" type="double" value="$(arg visualize_max_z)" />

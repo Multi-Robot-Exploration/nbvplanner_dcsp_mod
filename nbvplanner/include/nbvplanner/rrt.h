@@ -58,6 +58,7 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
     std::vector<geometry_msgs::Pose> samplePath(StateVec start, StateVec end, std::string targetFrame);
     virtual bool DoesDirectPathHasCollisions(StateVec nextPoint);
     virtual double eulerDistToCurrentState(StateVec nextPoint);
+    virtual Eigen::Vector4d  getCurrentPosition();
 
   protected:
     kdtree *kdTree_;

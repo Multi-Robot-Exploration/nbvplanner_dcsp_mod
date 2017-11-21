@@ -288,6 +288,10 @@ double nbvInspection::RrtTree::eulerDistToCurrentState(StateVec nextPoint){
     return sqrt(xx+yy+zz);
 }
 
+Eigen::Vector4d nbvInspection::RrtTree::getCurrentPosition(){
+    return currentState;
+}
+
 void nbvInspection::RrtTree::initialize()
 {
     // This function is to initialize the tree, including insertion of remainder of previous best branch.

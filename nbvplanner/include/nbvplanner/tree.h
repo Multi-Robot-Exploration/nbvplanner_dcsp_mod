@@ -131,6 +131,7 @@ class TreeBase
     virtual bool DoesDirectPathHasCollisions(stateVec nextPoint) = 0;
     virtual double eulerDistToCurrentState(stateVec nextPoint) = 0;
     virtual std::vector<geometry_msgs::Pose> getPathToNewPoint(stateVec nextPoint, std::string targetFrame) = 0;
+    virtual Eigen::Vector4d getCurrentPosition() = 0;
 };
 }
 

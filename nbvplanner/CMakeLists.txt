@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   kdtree
   multiagent_collision_check
   frontier_detection
+  dcsp
 )
 find_package(cmake_modules REQUIRED)
 find_package(Eigen REQUIRED)
@@ -42,7 +43,7 @@ include_directories(
   ${Eigen_INCLUDE_DIRS}
   ${OCTOMAP_INCLUDE_DIRS}
   ${frontier_detection_INCLUDE_DIRS}
-  #${dcsp_INCLUDE_DIRS}
+  ${dcsp_INCLUDE_DIRS}
 )
 
 add_library(nbvPlannerLib src/mesh_structure.cpp src/nbvp.cpp src/rrt.cpp src/tree.cpp)
@@ -53,11 +54,11 @@ target_link_libraries(nbvPlannerLib
   ${catkin_LIBRARIES}
   ${OCTOMAP_LIBRARIES}
   ${frontier_detection_INCLUDE_DIRS}
-  #${dcsp_INCLUDE_DIRS}
+  ${dcsp_INCLUDE_DIRS}
 )
 target_link_libraries(nbvPlanner
   ${catkin_LIBRARIES}
   ${OCTOMAP_LIBRARIES}
   ${frontier_detection_INCLUDE_DIRS}
-  #${dcsp_INCLUDE_DIRS}
+  ${dcsp_INCLUDE_DIRS}
 )

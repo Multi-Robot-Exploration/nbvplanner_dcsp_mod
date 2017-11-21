@@ -62,8 +62,10 @@ class nbvPlanner
     mesh::StlMesh *mesh_;
     volumetric_mapping::OctomapManager *manager_;
     std::string my_name;
+
     double min_dist;
     double min_voxels;
+    bool dcsp_enable;
 
     bool ready_;
 

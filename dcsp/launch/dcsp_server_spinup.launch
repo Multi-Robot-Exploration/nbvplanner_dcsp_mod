@@ -1,0 +1,15 @@
+<launch>
+
+    <node name="dcsp_agent_one" pkg="dcsp" type="dcsp_agent" output="screen" >
+      <param name="srv_name" type="string" value="dcsp_server_1"/>
+    </node>
+
+    <node name="dcsp_agent_two" pkg="dcsp" type="dcsp_agent" output="screen" >
+      <param name="srv_name" type="string" value="dcsp_server_2"/>
+    </node>
+
+    <node name="dcsp_agent_three" pkg="dcsp" type="dcsp_agent" output="screen" >
+      <param name="srv_name" type="string" value="dcsp_server_3"/>
+    </node>
+
+</launch>

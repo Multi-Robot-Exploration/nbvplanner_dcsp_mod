@@ -23,6 +23,7 @@
 #include <sstream>
 
 #include <ros/console.h>
+#include <ros/ros.h>
 
 #include <eigen3/Eigen/Dense>
 #include <nbvplanner/nbvp.h>
@@ -32,7 +33,10 @@
 #include <geometry_msgs/Point.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
-//include <dcsp/dcsp_srv.h>
+
+#include <dcsp/dcsp_srv.h>
+#include <dcsp/customPoint.h>
+#include <dcsp/agentViewElement.h>
 
 #include <frontier_detection/freespace_frontier_extractor.h>
 #include <frontier_detection/freespace_frontier_representative.h>
@@ -65,29 +69,35 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle &nh, const
                                     &nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTf, this);
 
     std::string ns = ros::this_node::getName();
-    my_name = "defaultName";
+
+    my_name = "firefly";
     if (!ros::param::get(ns + "/mv_name", my_name))
     {
-        ROS_WARN("No nname. Looking for %s Default is 'default_name.",
+        ROS_WARN("No nname. Looking for %s Default is 'firefly.",
                  (ns + "/mv_name").c_str());
     }
-    ROS_INFO("robot name %s,",my_name);
-    
-    
+    ROS_INFO("robot name %s,", my_name);
+
     min_voxels = 5.0;
     if (!ros::param::get(ns + "/min_vox", min_voxels))
     {
         ROS_WARN("No min voxels. Looking for %s. Default is '5.0",
                  (ns + "/min_vox").c_str());
     }
-    min_dist=3.0;
+
+    min_dist = 3.0;
     if (!ros::param::get(ns + "/min_dist", min_dist))
     {
         ROS_WARN("No min dist. Looking for %s. Default is '3.0.",
                  (ns + "/min_dist").c_str());
     }
 
-
+    dcsp_enable = false;
+    if (!ros::param::get(ns + "/dcsp_enable", dcsp_enable))
+    {
+        ROS_WARN("dcsp_enable not set. Looking for %s. Default is 'false",
+                 (ns + "/dcsp_enable").c_str());
+    }
 
     if (!setParams())
     {
@@ -248,11 +258,10 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
 
             if (!tree_->DoesDirectPathHasCollisions(nextPoint))
             {
-                reachableFrontierPoints.push_back((*it).p);
-
                 double dist = tree_->eulerDistToCurrentState(nextPoint);
                 if (dist >= min_dist)
                 {
+                    reachableFrontierPoints.push_back((*it).p);
                     frontierOrderedMap[dist] = (*it).p;
                     found = true;
                 }
@@ -275,39 +284,66 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
         geometry_msgs::Point selectedPoint;
         const char *dist = "unknown";
 
-        std::string serviceName;
+        std::string myName;
+        std::vector<std::string> agentNames;
 
         if (my_name == "firefly1")
         {
-            serviceName = "dcsp_service_1";
+            myName = "firefly_1";
+            agentNames.push_back("firefly_2");
+            agentNames.push_back("firefly_3");
         }
         if (my_name == "firefly2")
         {
-            serviceName = "dcsp_service_2";
+            myName = "firefly_2";
+            agentNames.push_back("firefly_1");
+            agentNames.push_back("firefly_3");
         }
         if (my_name == "firefly3")
         {
-            serviceName = "dcsp_service_3";
+            myName = "firefly_3";
+            agentNames.push_back("firefly_2");
+            agentNames.push_back("firefly_1");
         }
 
-        bool using_dcsp = false;
-
-        if (using_dcsp)
+        if (dcsp_enable)
         {
-            // dcsp::dcsp_srv dcsp_service;
+            dcsp::dcsp_srv dcsp_service;
 
-            // dsc
+            dcsp_service.request.my_name = myName;
+            dcsp_service.request.agents_names = agentNames;
 
-            // if (ros::service::call(serviceName, dcsp_service))
-            // {
-            //     selectedPoint.x = dcsp_service.response.x;
-            //     selectedPoint.y = dcsp_service.response.y;
-            //     selectedPoint.z = dcsp_service.response.z;
-            // }
-            // else
-            // {
-            //     ROS_WARN("DCSP Service not reachable");
-            // }
+            Eigen::Vector4d currentPos = tree_->getCurrentPosition();
+            dcsp::customPoint point;
+            point.x = currentPos[0];
+            point.y = currentPos[0];
+            point.z = currentPos[0];
+            dcsp_service.request.origin = point;
+
+            std::vector<dcsp::customPoint> myDomain;
+
+            std::vector<geometry_msgs::Point>::iterator j;
+            for (j = reachableFrontierPoints.begin(); j != reachableFrontierPoints.end(); j++)
+            {
+                dcsp::customPoint p;
+                p.x = (*j).x;
+                p.y = (*j).y;
+                p.z = (*j).z;
+                myDomain.push_back(p);
+            }
+            dcsp_service.request.my_domain = myDomain;
+
+            if (ros::service::call("dcsp_srv", dcsp_service))
+            {
+                selectedPoint.x = dcsp_service.response.x;
+                selectedPoint.y = dcsp_service.response.y;
+                selectedPoint.z = dcsp_service.response.z;
+                ROS_WARN("DCSP Service Responded");
+            }
+            else
+            {
+                ROS_WARN("DCSP Service not reachable");
+            }
         }
         else
         {

@@ -84,7 +84,7 @@ class nbvPlanner
     void insertPointcloudWithTfCamDown(const sensor_msgs::PointCloud2::ConstPtr &pointcloud);
     void evasionCallback(const multiagent_collision_check::Segment &segmentMsg);
     void visualizeFrontiers(std::vector<geometry_msgs::Point> frontiers);
-    void visualizeSelectedFrontier(geometry_msgs::Point selectedFrontier);
+    void visualizeSelectedFrontier(std::vector<geometry_msgs::Point> selectedFrontier);
 };
 
 }

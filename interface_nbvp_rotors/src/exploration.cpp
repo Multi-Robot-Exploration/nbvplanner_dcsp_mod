@@ -147,6 +147,23 @@ int main(int argc, char **argv)
                 trajectory_pub.publish(samples_array);
                 ros::Duration(dt).sleep();
             }
+
+            for (double i = 0; i <= 1.0; i = i + 0.1)
+            {
+                n_seq++;
+                samples_array.header.seq = n_seq;
+                samples_array.header.stamp = ros::Time::now();
+                samples_array.points.clear();
+
+                double angle = 2 * -M_PI * i;
+
+                tf::Quaternion quat = tf::Quaternion(tf::Vector3(0.0, 0.0, 1.0), angle);
+                trajectory_point.setFromYaw(tf::getYaw(quat));
+                mav_msgs::msgMultiDofJointTrajectoryPointFromEigen(trajectory_point, &trajectory_point_msg);
+                samples_array.points.push_back(trajectory_point_msg);
+                trajectory_pub.publish(samples_array);
+                ros::Duration(1.0).sleep();
+            }
         }
         else
         {

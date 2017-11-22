@@ -55,7 +55,7 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle &nh, const
 
     // Set up the topics and services
     pub_frontiers_points = nh_.advertise<visualization_msgs::MarkerArray>("frontierPoints", 1000, true);
-    pub_selected_frontiers_point = nh_.advertise<visualization_msgs::Marker>("selectedfrontierPoint", 1000, true);
+    pub_selected_frontiers_point = nh_.advertise<visualization_msgs::MarkerArray>("selectedfrontierPoint", 1000, true);
 
     params_.inspectionPath_ = nh_.advertise<visualization_msgs::Marker>("inspectionPath", 1000);
 
@@ -68,6 +68,7 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle &nh, const
     pointcloud_sub_ = nh_.subscribe("pointcloud_throttled", 1,
                                     &nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTf, this);
 
+
     std::string ns = ros::this_node::getName();
 
     my_name = "firefly";
@@ -76,7 +77,7 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle &nh, const
         ROS_WARN("No nname. Looking for %s Default is 'firefly.",
                  (ns + "/mv_name").c_str());
     }
-    ROS_INFO("robot name %s,", my_name);
+    ROS_INFO("robot name %s,", my_name.c_str());
 
     min_voxels = 5.0;
     if (!ros::param::get(ns + "/min_vox", min_voxels))
@@ -182,26 +183,26 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
     // Check that planner is ready to compute path.
     if (!ros::ok())
     {
-        ROS_INFO_THROTTLE(1, "Exploration finished. Not planning any further moves.");
+        ROS_INFO_THROTTLE(1, "%s:: Exploration finished. Not planning any further moves.", my_name.c_str());
         return true;
     }
     if (!ready_)
     {
-        ROS_ERROR_THROTTLE(1, "Planner not set up: Planner not ready!");
+        ROS_ERROR_THROTTLE(1, "%s:: Planner not set up: Planner not ready!", my_name.c_str());
         return true;
     }
     if (manager_ == NULL)
     {
-        ROS_ERROR_THROTTLE(1, "Planner not set up: No octomap available!");
+        ROS_ERROR_THROTTLE(1, "%s:: Planner not set up: No octomap available!", my_name.c_str());
         return true;
     }
     if (manager_->getMapSize().norm() <= 0.0)
     {
-        ROS_ERROR_THROTTLE(1, "Planner not set up: Octomap is empty!");
+        ROS_ERROR_THROTTLE(1, "%s:: Planner not set up: Octomap is empty!", my_name.c_str());
         return true;
     }
 
-    ROS_INFO("Planner is called. %2.3f", req.header.seq);
+    ROS_INFO("%s:: Planner is called. %2.3f", my_name.c_str(), req.header.seq);
 
     tree_->clear();
     tree_->initialize();
@@ -210,35 +211,21 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
 
     octomap::OcTree *octree;
 
-    ROS_INFO("Getting Current Octomap");
+    ROS_INFO("%s:: Getting Current Octomap", my_name.c_str());
 
     std::shared_ptr<octomap::OcTree> octreePtr = manager_->getOctree();
 
     octree = octreePtr.get();
 
-    ROS_INFO("Detecting Frontiers.");
+    ROS_INFO("%s:: Detecting Frontiers.", my_name.c_str());
     octomap_frontiers3d::FreeSpaceFrontierExtractor frontierExtractor(nh_, nh_private_);
 
     frontierExtractor.SetOcTree(&octree);
     std::vector<octomap_frontiers3d::FreeSpaceFrontierRepresentative> frontierVector;
 
-    ROS_INFO("Before extract");
-
-    //stop logging
-    // if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Fatal))
-    // {
-    //     ros::console::notifyLoggerLevelsChanged();
-    // }
-
     frontierExtractor.Extract(frontierVector);
 
-    //restart logging
-    // if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug))
-    // {
-    //     ros::console::notifyLoggerLevelsChanged();
-    // }
-
-    ROS_INFO("Filtering Frontiers");
+    ROS_INFO("%s:: Filtering Frontiers", my_name.c_str());
 
     std::vector<octomap_frontiers3d::FreeSpaceFrontierRepresentative>::iterator it;
     std::vector<geometry_msgs::Point> reachableFrontierPoints;
@@ -271,14 +258,14 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
     //ROS_INFO("samplePath called: start: %2f, %2f, %2f, %2f end: %2f, %2f, %2f, %2f", start[0], start[1], start[2], start[3], end[0], end[1], end[2], end[3]);
     if (!found)
     {
-        ROS_INFO("****NO SUITABLE FRONTIER FOUND!!****");
+        ROS_INFO("%s:: ****NO SUITABLE FRONTIER FOUND!!****", my_name.c_str());
         //res.path = tree_->getPathToNewPoint(tree_->currentState, req.header.frame_id);
     }
     else
     {
         visualizeFrontiers(reachableFrontierPoints);
 
-        ROS_INFO("Selecting next frontier to navigate.");
+        ROS_INFO("%s:: Selecting next frontier to navigate.", my_name.c_str());
         //call DCSP for collaborative decisions on frontiers
 
         geometry_msgs::Point selectedPoint;
@@ -306,7 +293,7 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
             agentNames.push_back("firefly_1");
         }
 
-        if (dcsp_enable)
+        if (false)
         {
             dcsp::dcsp_srv dcsp_service;
 
@@ -354,18 +341,37 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
             dist = ss.str().c_str();
         }
 
+        Eigen::Vector4d currentPos = tree_->getCurrentPosition();
+        
+        Eigen::Vector4d newPoint;
+        newPoint[0] = (selectedPoint.x + currentPos[0]) * 0.5;
+        newPoint[1] = (selectedPoint.y + currentPos[1]) * 0.5;
+        newPoint[2] = (selectedPoint.z + currentPos[2]) * 0.5;
+        newPoint[3] = 0;
+
+        geometry_msgs::Point halfpoint;
+        halfpoint.x = newPoint[0];
+        halfpoint.y = newPoint[1];
+        halfpoint.z = newPoint[2];
+
         Eigen::Vector4d selectedPointEigen(selectedPoint.x, selectedPoint.y, selectedPoint.z, 0);
 
-        ROS_INFO("dist: %s, x:%f, y:%f, z:%f,", dist, selectedPoint.x, selectedPoint.y, selectedPoint.z);
+        ROS_INFO("%s:: dist: %s, x:%f, y:%f, z:%f,", my_name.c_str(), dist, selectedPoint.x, selectedPoint.y, selectedPoint.z);
+        ROS_INFO("%s:: newpoint, x:%f, y:%f, z:%f,", my_name.c_str(), newPoint[0], newPoint[1], newPoint[2]);
 
-        visualizeSelectedFrontier(selectedPoint);
+        std::vector<geometry_msgs::Point> front;
 
-        res.path = tree_->getPathToNewPoint(selectedPointEigen, req.header.frame_id);
+        front.push_back(selectedPoint);
+        front.push_back(halfpoint);
 
-        ROS_INFO("Frontier Selected. Now navigating.");
+        visualizeSelectedFrontier(front);
+
+        res.path = tree_->getPathToNewPoint(newPoint, req.header.frame_id);
+
+        ROS_INFO("%s:: Frontier Selected. Now navigating.", my_name.c_str());
     }
 
-    ROS_INFO("Path computation lasted %2.3fs", (ros::Time::now() - computationTime).toSec());
+    ROS_INFO("%s:: Path computation lasted %2.3fs", my_name.c_str(), (ros::Time::now() - computationTime).toSec());
     return true;
 }
 
@@ -432,55 +438,62 @@ void nbvInspection::nbvPlanner<stateVec>::visualizeFrontiers(std::vector<geometr
 }
 
 template <typename stateVec>
-void nbvInspection::nbvPlanner<stateVec>::visualizeSelectedFrontier(geometry_msgs::Point selectedFrontier)
+void nbvInspection::nbvPlanner<stateVec>::visualizeSelectedFrontier(std::vector<geometry_msgs::Point> selectedFrontier)
 {
-    visualization_msgs::Marker marker;
+    visualization_msgs::MarkerArray markerArray;
 
-    marker.header.frame_id = "world";
-    marker.header.stamp = ros::Time::now();
-    marker.header.seq = 0;
-    marker.ns = "my_namespace";
-    marker.id = 0;
-    marker.type = visualization_msgs::Marker::SPHERE;
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.pose.position.x = selectedFrontier.x;
-    marker.pose.position.y = selectedFrontier.y;
-    marker.pose.position.z = selectedFrontier.z;
-    marker.pose.orientation.x = 0.0;
-    marker.pose.orientation.y = 0.0;
-    marker.pose.orientation.z = 0.0;
-    marker.pose.orientation.w = 1.0;
-    marker.scale.x = 0.4;
-    marker.scale.y = 0.4;
-    marker.scale.z = 0.4;
-
-    marker.color.a = 1.0;
-    marker.color.r = 1.0;
-    marker.color.g = 0.0;
-    marker.color.b = 0.0;
-
-    //std::string name = params_.navigationFrame_;
-
-    if (my_name == "firefly1")
+    for (int i = 0; i < selectedFrontier.size(); i++)
     {
+
+        visualization_msgs::Marker marker;
+
+        marker.header.frame_id = "world";
+        marker.header.stamp = ros::Time::now();
+        marker.header.seq = 0;
+        marker.ns = "my_namespace";
+        marker.id = i;
+        marker.type = visualization_msgs::Marker::SPHERE;
+        marker.action = visualization_msgs::Marker::ADD;
+        marker.pose.position.x = selectedFrontier.at(i).x;
+        marker.pose.position.y = selectedFrontier.at(i).y;
+        marker.pose.position.z = selectedFrontier.at(i).z;
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;
+        marker.scale.x = 0.4;
+        marker.scale.y = 0.4;
+        marker.scale.z = 0.4;
+
+        marker.color.a = 1.0;
         marker.color.r = 1.0;
         marker.color.g = 0.0;
         marker.color.b = 0.0;
-    }
-    if (my_name == "firefly2")
-    {
-        marker.color.r = 0.0;
-        marker.color.g = 1.0;
-        marker.color.b = 0.0;
-    }
-    if (my_name == "firefly3")
-    {
-        marker.color.r = 0.0;
-        marker.color.g = 0.0;
-        marker.color.b = 1.0;
+
+        //std::string name = params_.navigationFrame_;
+
+        if (my_name == "firefly1")
+        {
+            marker.color.r = 1.0;
+            marker.color.g = 0.0;
+            marker.color.b = 0.0;
+        }
+        if (my_name == "firefly2")
+        {
+            marker.color.r = 0.0;
+            marker.color.g = 1.0;
+            marker.color.b = 0.0;
+        }
+        if (my_name == "firefly3")
+        {
+            marker.color.r = 0.0;
+            marker.color.g = 0.0;
+            marker.color.b = 1.0;
+        }
+        markerArray.markers.push_back(marker);
     }
 
-    pub_selected_frontiers_point.publish<visualization_msgs::Marker>(marker);
+    pub_selected_frontiers_point.publish<visualization_msgs::MarkerArray>(markerArray);
 }
 
 template <typename stateVec>

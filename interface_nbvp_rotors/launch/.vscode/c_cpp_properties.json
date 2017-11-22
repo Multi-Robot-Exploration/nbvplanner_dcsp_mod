@@ -1,0 +1,55 @@
+{
+    "configurations": [
+        {
+            "browse": {
+                "databaseFilename": "",
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/home/charith/rosdev/nbv_mod/devel/include",
+                    "/home/charith/rosdev/catkinws03/devel/include",
+                    "/opt/ros/kinetic/include",
+                    "/home/charith/rosdev/nbv_mod/src/nbvplanner/dcsp/include",
+                    "/home/charith/rosdev/nbv_mod/src/nbvplanner/eigen_checks/include",
+                    "/home/charith/rosdev/nbv_mod/src/nbvplanner/frontier_detection/include",
+                    "/home/charith/rosdev/nbv_mod/src/nbvplanner/kdtree/include",
+                    "/home/charith/rosdev/nbv_mod/src/nbvplanner/mav_comm/mav_msgs/include",
+                    "/home/charith/rosdev/nbv_mod/src/nbvplanner/minkindr/minkindr/include",
+                    "/home/charith/rosdev/nbv_mod/src/nbvplanner/minkindr_ros/minkindr_conversions/include",
+                    "/home/charith/rosdev/nbv_mod/src/nbvplanner/multiagent_collision_check/include",
+                    "/home/charith/rosdev/nbv_mod/src/nbvplanner/nbvplanner/include",
+                    "/home/charith/rosdev/nbv_mod/src/nbvplanner/volumetric_mapping/octomap_world/include",
+                    "/home/charith/rosdev/nbv_mod/src/nbvplanner/prune_pointcloud/include",
+                    "/home/charith/rosdev/nbv_mod/src/nbvplanner/rotors/rotors_control/include",
+                    "/home/charith/rosdev/nbv_mod/src/nbvplanner/rotors/rotors_gazebo_plugins/include",
+                    "/home/charith/rosdev/nbv_mod/src/nbvplanner/rotors/rotors_joy_interface/include",
+                    "/home/charith/rosdev/nbv_mod/src/nbvplanner/volumetric_mapping/volumetric_map_base/include",
+                    "/usr/include"
+                ]
+            },
+            "includePath": [
+                "/home/charith/rosdev/nbv_mod/devel/include",
+                "/home/charith/rosdev/catkinws03/devel/include",
+                "/opt/ros/kinetic/include",
+                "/home/charith/rosdev/nbv_mod/src/nbvplanner/dcsp/include",
+                "/home/charith/rosdev/nbv_mod/src/nbvplanner/eigen_checks/include",
+                "/home/charith/rosdev/nbv_mod/src/nbvplanner/frontier_detection/include",
+                "/home/charith/rosdev/nbv_mod/src/nbvplanner/kdtree/include",
+                "/home/charith/rosdev/nbv_mod/src/nbvplanner/mav_comm/mav_msgs/include",
+                "/home/charith/rosdev/nbv_mod/src/nbvplanner/minkindr/minkindr/include",
+                "/home/charith/rosdev/nbv_mod/src/nbvplanner/minkindr_ros/minkindr_conversions/include",
+                "/home/charith/rosdev/nbv_mod/src/nbvplanner/multiagent_collision_check/include",
+                "/home/charith/rosdev/nbv_mod/src/nbvplanner/nbvplanner/include",
+                "/home/charith/rosdev/nbv_mod/src/nbvplanner/volumetric_mapping/octomap_world/include",
+                "/home/charith/rosdev/nbv_mod/src/nbvplanner/prune_pointcloud/include",
+                "/home/charith/rosdev/nbv_mod/src/nbvplanner/rotors/rotors_control/include",
+                "/home/charith/rosdev/nbv_mod/src/nbvplanner/rotors/rotors_gazebo_plugins/include",
+                "/home/charith/rosdev/nbv_mod/src/nbvplanner/rotors/rotors_joy_interface/include",
+                "/home/charith/rosdev/nbv_mod/src/nbvplanner/volumetric_mapping/volumetric_map_base/include",
+                "/usr/include"
+            ],
+            "name": "Linux",
+            "intelliSenseMode": "clang-x64"
+        }
+    ],
+    "version": 3
+}

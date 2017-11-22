@@ -25,75 +25,76 @@
 nbvInspection::RrtTree::RrtTree()
     : nbvInspection::TreeBase<StateVec>::TreeBase()
 {
-  kdTree_ = kd_create(3);
-  iterationCount_ = 0;
-  for (int i = 0; i < 4; i++) {
-    inspectionThrottleTime_.push_back(ros::Time::now().toSec());
-  }
+    kdTree_ = kd_create(3);
+    iterationCount_ = 0;
+    for (int i = 0; i < 4; i++)
+    {
+        inspectionThrottleTime_.push_back(ros::Time::now().toSec());
+    }
 
-  // If logging is required, set up files here
-  bool ifLog = false;
-  std::string ns = ros::this_node::getName();
-  ros::param::get(ns + "/nbvp/log/on", ifLog);
-  if (ifLog) {
-    time_t rawtime;
-    struct tm * ptm;
-    time(&rawtime);
-    ptm = gmtime(&rawtime);
-    logFilePath_ = ros::package::getPath("nbvplanner") + "/data/"
-        + std::to_string(ptm->tm_year + 1900) + "_" + std::to_string(ptm->tm_mon + 1) + "_"
-        + std::to_string(ptm->tm_mday) + "_" + std::to_string(ptm->tm_hour) + "_"
-        + std::to_string(ptm->tm_min) + "_" + std::to_string(ptm->tm_sec);
-    system(("mkdir -p " + logFilePath_).c_str());
-    logFilePath_ += "/";
-    fileResponse_.open((logFilePath_ + "response.txt").c_str(), std::ios::out);
-    filePath_.open((logFilePath_ + "path.txt").c_str(), std::ios::out);
-  }
+    // If logging is required, set up files here
+    bool ifLog = false;
+    std::string ns = ros::this_node::getName();
+    ros::param::get(ns + "/nbvp/log/on", ifLog);
+    if (ifLog)
+    {
+        time_t rawtime;
+        struct tm *ptm;
+        time(&rawtime);
+        ptm = gmtime(&rawtime);
+        logFilePath_ = ros::package::getPath("nbvplanner") + "/data/" + std::to_string(ptm->tm_year + 1900) + "_" + std::to_string(ptm->tm_mon + 1) + "_" + std::to_string(ptm->tm_mday) + "_" + std::to_string(ptm->tm_hour) + "_" + std::to_string(ptm->tm_min) + "_" + std::to_string(ptm->tm_sec);
+        system(("mkdir -p " + logFilePath_).c_str());
+        logFilePath_ += "/";
+        fileResponse_.open((logFilePath_ + "response.txt").c_str(), std::ios::out);
+        filePath_.open((logFilePath_ + "path.txt").c_str(), std::ios::out);
+    }
 }
 
-nbvInspection::RrtTree::RrtTree(mesh::StlMesh * mesh, volumetric_mapping::OctomapManager * manager)
+nbvInspection::RrtTree::RrtTree(mesh::StlMesh *mesh, volumetric_mapping::OctomapManager *manager)
 {
-  mesh_ = mesh;
-  manager_ = manager;
-  kdTree_ = kd_create(3);
-  iterationCount_ = 0;
-  for (int i = 0; i < 4; i++) {
-    inspectionThrottleTime_.push_back(ros::Time::now().toSec());
-  }
+    mesh_ = mesh;
+    manager_ = manager;
+    kdTree_ = kd_create(3);
+    iterationCount_ = 0;
+    for (int i = 0; i < 4; i++)
+    {
+        inspectionThrottleTime_.push_back(ros::Time::now().toSec());
+    }
 
-  // If logging is required, set up files here
-  bool ifLog = false;
-  std::string ns = ros::this_node::getName();
-  ros::param::get(ns + "/nbvp/log/on", ifLog);
-  if (ifLog) {
-    time_t rawtime;
-    struct tm * ptm;
-    time(&rawtime);
-    ptm = gmtime(&rawtime);
-    logFilePath_ = ros::package::getPath("nbvplanner") + "/data/"
-        + std::to_string(ptm->tm_year + 1900) + "_" + std::to_string(ptm->tm_mon + 1) + "_"
-        + std::to_string(ptm->tm_mday) + "_" + std::to_string(ptm->tm_hour) + "_"
-        + std::to_string(ptm->tm_min) + "_" + std::to_string(ptm->tm_sec);
-    system(("mkdir -p " + logFilePath_).c_str());
-    logFilePath_ += "/";
-    fileResponse_.open((logFilePath_ + "response.txt").c_str(), std::ios::out);
-    filePath_.open((logFilePath_ + "path.txt").c_str(), std::ios::out);
-  }
+    // If logging is required, set up files here
+    bool ifLog = false;
+    std::string ns = ros::this_node::getName();
+    ros::param::get(ns + "/nbvp/log/on", ifLog);
+    if (ifLog)
+    {
+        time_t rawtime;
+        struct tm *ptm;
+        time(&rawtime);
+        ptm = gmtime(&rawtime);
+        logFilePath_ = ros::package::getPath("nbvplanner") + "/data/" + std::to_string(ptm->tm_year + 1900) + "_" + std::to_string(ptm->tm_mon + 1) + "_" + std::to_string(ptm->tm_mday) + "_" + std::to_string(ptm->tm_hour) + "_" + std::to_string(ptm->tm_min) + "_" + std::to_string(ptm->tm_sec);
+        system(("mkdir -p " + logFilePath_).c_str());
+        logFilePath_ += "/";
+        fileResponse_.open((logFilePath_ + "response.txt").c_str(), std::ios::out);
+        filePath_.open((logFilePath_ + "path.txt").c_str(), std::ios::out);
+    }
 }
 
 nbvInspection::RrtTree::~RrtTree()
 {
-  delete rootNode_;
-  kd_free(kdTree_);
-  if (fileResponse_.is_open()) {
-    fileResponse_.close();
-  }
-  if (fileTree_.is_open()) {
-    fileTree_.close();
-  }
-  if (filePath_.is_open()) {
-    filePath_.close();
-  }
+    delete rootNode_;
+    kd_free(kdTree_);
+    if (fileResponse_.is_open())
+    {
+        fileResponse_.close();
+    }
+    if (fileTree_.is_open())
+    {
+        fileTree_.close();
+    }
+    if (filePath_.is_open())
+    {
+        filePath_.close();
+    }
 }
 
 void nbvInspection::RrtTree::setStateFromPoseMsg(const geometry_msgs::PoseWithCovarianceStamped &pose)
@@ -268,27 +269,33 @@ void nbvInspection::RrtTree::iterate(int iterations)
     }
 }
 
-bool nbvInspection::RrtTree::DoesDirectPathHasCollisions(StateVec nextPoint){
+bool nbvInspection::RrtTree::DoesDirectPathHasCollisions(StateVec nextPoint)
+{
     Eigen::Vector3d origin(currentState[0], currentState[1], currentState[2]);
     Eigen::Vector3d destination(nextPoint[0], nextPoint[1], nextPoint[2]);
     volumetric_mapping::OctomapManager::CellStatus status;
     status = manager_->getLineStatusBoundingBox(origin, destination, params_.boundingBox_);
 
-    if(status == volumetric_mapping::OctomapManager::CellStatus::kFree){
+    if (status == volumetric_mapping::OctomapManager::CellStatus::kFree)
+    {
         return false;
-    }else{
+    }
+    else
+    {
         return true;
     }
 }
 
-double nbvInspection::RrtTree::eulerDistToCurrentState(StateVec nextPoint){
-    double xx = pow((nextPoint[0]-currentState[0]),2.0);
-    double yy = pow((nextPoint[1]-currentState[1]),2.0);
-    double zz = pow((nextPoint[2]-currentState[2]),2.0);
-    return sqrt(xx+yy+zz);
+double nbvInspection::RrtTree::eulerDistToCurrentState(StateVec nextPoint)
+{
+    double xx = pow((nextPoint[0] - currentState[0]), 2.0);
+    double yy = pow((nextPoint[1] - currentState[1]), 2.0);
+    double zz = pow((nextPoint[2] - currentState[2]), 2.0);
+    return sqrt(xx + yy + zz);
 }
 
-Eigen::Vector4d nbvInspection::RrtTree::getCurrentPosition(){
+Eigen::Vector4d nbvInspection::RrtTree::getCurrentPosition()
+{
     return currentState;
 }
 
@@ -638,6 +645,7 @@ void nbvInspection::RrtTree::publishNode(Node<StateVec> *node)
 std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::getPathToNewPoint(StateVec nextPoint, std::string targetFrame)
 {
     std::vector<geometry_msgs::Pose> ret;
+
     ret = samplePath(currentState, nextPoint, targetFrame);
     return ret;
 }

@@ -74,6 +74,7 @@ class Agent
     std::string server_name;
     std::string my_msg_name;
     std::string my_srv_name;
+    std::string my_srv_time_out;
 
     std::vector<std::string> higher_priority_agents;
     std::vector<std::string> lower_priority_agents;

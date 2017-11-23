@@ -29,6 +29,12 @@ Agent::Agent(const ros::NodeHandle &nh, const ros::NodeHandle &nh_private) : nh_
         ROS_WARN("No server name specified. Looking for %s.",
                  (ns + "/srv_name").c_str());
     }
+                                                                               
+    if (!ros::param::get(ns + "/srv_time_out", server_time_out))
+    {
+        ROS_WARN("No server timeout specified. Looking for %s.",
+                 (ns + "/srv_time_out").c_str());
+    }
 
     if (server_name == "dcsp_server_1")
     {
